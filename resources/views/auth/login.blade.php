@@ -115,6 +115,9 @@
                 <i class="fas fa-sign-in-alt me-2"></i>Login
             </button>
         </form>
+        <div style="color: rgba(255,255,255,0.6); text-align: center; margin-top: 20px; font-size: 14px;">
+    Belum punya akun? <a href="{{ route('register') }}" style="color: #e94560; text-decoration: none; font-weight: 600;">Daftar di sini</a>
+</div>
     </div>
 </body>
 </html>

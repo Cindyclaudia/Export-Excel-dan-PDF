@@ -3,17 +3,11 @@
 <head>
     <title>Data Mahasiswa</title>
 </head>
-<body>
+<body onload="window.print()">
 
 <h2>Data Mahasiswa</h2>
 
-<!-- BUTTON EXPORT -->
-<a href="{{ route('mahasiswa.exportCsv') }}">Export CSV</a>
-<a href="{{ route('mahasiswa.print') }}" target="_blank">Print PDF</a>
-
-<br><br>
-
-<table border="1" cellpadding="5" cellspacing="0">
+<table border="1" width="100%" cellspacing="0" cellpadding="5">
     <thead>
         <tr>
             <th>No</th>

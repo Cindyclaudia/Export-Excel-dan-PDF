@@ -6,10 +6,26 @@ use Illuminate\Database\Eloquent\Model;
 
 class Mahasiswa extends Model
 {
-    protected $primaryKey = 'id_mahasiswa';
-    protected $fillable = ['nim', 'nama', 'id_jurusan'];
+    // Nama tabel di database phpMyAdmin kamu
+    protected $table = 'mahasiswa'; 
 
-    public function jurusan()
+    // WAJIB: Beritahu Laravel kalau primary key kamu bukan 'id'
+    protected $primaryKey = 'id_mahasiswa';
+
+    // Jika primary key kamu bukan auto-incrementing integer, ubah ke false (tapi biasanya true)
+    public $incrementing = true;
+
+    protected $fillable = [
+        'nim',
+        'nama',
+        'email',
+        'id_jurusan'
+    ];
+
+    /**
+     * Relasi belongsTo ke Model Jurusan
+     */
+    public function detail_jurusan()
     {
         return $this->belongsTo(Jurusan::class, 'id_jurusan', 'id_jurusan');
     }

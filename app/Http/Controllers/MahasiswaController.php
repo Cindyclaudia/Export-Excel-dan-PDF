@@ -5,222 +5,134 @@ namespace App\Http\Controllers;
 use App\Models\Mahasiswa;
 use App\Models\Jurusan;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 
 class MahasiswaController extends Controller
 {
-    public function handleMahasiswaRoot(Request $request)
-    {
-        if ($request->isMethod('post') || $request->has('nim') || $request->has('nama')) {
-            return $this->store($request);
-        }
-        return $this->index();
-    }
-
-    // 🔥 FIX UTAMA: INDEX DIUBAH JADI VIEW (bukan JSON)
     public function index()
     {
-        try {
-            $mahasiswas = Mahasiswa::all();
-
-            $result = $mahasiswas->map(function ($mahasiswa) {
-
-                $jurusan = DB::table('jurusans')
-                    ->where('id_jurusan', $mahasiswa->id_jurusan)
-                    ->first();
-
-                if (!$jurusan) {
-                    $detailJurusan = [
-                        'id_jurusan'   => (int)$mahasiswa->id_jurusan,
-                        'nama_jurusan' => $mahasiswa->id_jurusan == 2 ? 'Sistem Informasi' : 'Teknik Informatika',
-                        'akreditasi'   => 'A',
-                    ];
-                } else {
-                    $detailJurusan = [
-                        'id_jurusan'   => (int)$jurusan->id_jurusan,
-                        'nama_jurusan' => $jurusan->nama_jurusan,
-                        'akreditasi'   => $jurusan->akreditasi,
-                    ];
-                }
-
-                return (object)[
-                    'id_mahasiswa' => $mahasiswa->id_mahasiswa,
-                    'nim' => $mahasiswa->nim,
-                    'nama' => $mahasiswa->nama,
-                    'email' => $mahasiswa->email,
-                    'detail_jurusan' => (object)$detailJurusan
-                ];
-            });
-
-            // ✅ INI YANG DIUBAH (dari JSON → VIEW)
-            return view('mahasiswa.index', [
-                'mahasiswa' => $result
-            ]);
-
-        } catch (\Exception $e) {
-            return dd($e->getMessage());
-        }
-    }
-
-    // SHOW (TETAP)
-    public function show($id)
-    {
-        $mahasiswa = Mahasiswa::where('id_mahasiswa', $id)->first();
-
-        if (!$mahasiswa) {
-            return response()->json([
-                'status' => 404,
-                'success' => false,
-                'message' => 'Data tidak ditemukan'
-            ], 404);
-        }
-
-        return response()->json([
-            'status' => 200,
-            'success' => true,
-            'result' => $mahasiswa
-        ], 200);
-    }
-
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'nim'        => 'required|unique:mahasiswa,nim',
-            'nama'       => 'required',
-            'id_jurusan' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 400,
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'error' => $validator->errors()->first()
-            ], 400);
-        }
-
-        $mahasiswa = Mahasiswa::create($request->all());
-
-        return response()->json([
-            'status'  => 201,
-            'success' => true,
-            'message' => 'Mahasiswa berhasil ditambahkan!',
-            'result'  => $mahasiswa
-        ], 201);
-    }
-
-    public function update(Request $request, $id)
-    {
-        $mahasiswa = Mahasiswa::where('id_mahasiswa', $id)->first();
-
-        if (!$mahasiswa) {
-            return response()->json([
-                'status' => 404,
-                'success' => false,
-                'message' => 'Data tidak ditemukan'
-            ], 404);
-        }
-
-        $mahasiswa->update($request->all());
-
-        return response()->json([
-            'status' => 200,
-            'success' => true,
-            'message' => 'Data berhasil diupdate',
-            'result' => $mahasiswa
-        ], 200);
-    }
-
-    public function destroy($id)
-    {
-        $mahasiswa = Mahasiswa::where('id_mahasiswa', $id)->first();
-
-        if (!$mahasiswa) {
-            return response()->json([
-                'status' => 404,
-                'success' => false
-            ], 404);
-        }
-
-        $mahasiswa->delete();
-
-        return response()->json([
-            'status' => 200,
-            'success' => true,
-            'message' => 'Data berhasil dihapus'
-        ], 200);
+        $mahasiswas = Mahasiswa::with('jurusan')->get();
+        return view('mahasiswa.index', compact('mahasiswas'));
     }
 
     public function create()
     {
-        return view('mahasiswa.create', [
-            'jurusans' => Jurusan::all()
-        ]);
+        $jurusans = Jurusan::all();
+        return view('mahasiswa.create', compact('jurusans'));
     }
 
-    public function edit($id)
+    public function store(Request $request)
     {
-        return view('mahasiswa.edit', [
-            'mahasiswa' => Mahasiswa::where('id_mahasiswa', $id)->first(),
-            'jurusans' => Jurusan::all()
+        $request->validate([
+            'nim'        => 'required|unique:mahasiswas,nim',
+            'nama'       => 'required',
+            'id_jurusan' => 'required',
         ]);
+
+        Mahasiswa::create($request->all());
+        return redirect()->route('mahasiswa.index')->with('success', 'Mahasiswa berhasil ditambahkan!');
     }
 
-    public function exportCsv()
+    public function edit(Mahasiswa $mahasiswa)
     {
-        $fileName = 'mahasiswa.csv';
+        $jurusans = Jurusan::all();
+        return view('mahasiswa.edit', compact('mahasiswa', 'jurusans'));
+    }
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
-        ];
+    public function update(Request $request, Mahasiswa $mahasiswa)
+    {
+        $request->validate([
+            'nim'        => 'required|unique:mahasiswas,nim,' . $mahasiswa->id_mahasiswa . ',id_mahasiswa',
+            'nama'       => 'required',
+            'id_jurusan' => 'required',
+        ]);
 
-        $callback = function () {
+        $mahasiswa->update($request->all());
+        return redirect()->route('mahasiswa.index')->with('success', 'Mahasiswa berhasil diupdate!');
+    }
 
-            $file = fopen('php://output', 'w');
-
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-            fputcsv($file, [
-                'ID',
-                'NIM',
-                'Nama',
-                'Jurusan'
-            ], ';');
-
-            $mahasiswa = Mahasiswa::with('detail_jurusan')->get();
-
-            foreach ($mahasiswa as $item) {
-
-                fputcsv($file, [
-                    $item->id_mahasiswa,
-                    $item->nim,
-                    $item->nama,
-                    $item->detail_jurusan->nama_jurusan ?? '-',
-                ], ';');
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+    public function destroy(Mahasiswa $mahasiswa)
+    {
+        $mahasiswa->delete();
+        return redirect()->route('mahasiswa.index')->with('success', 'Mahasiswa berhasil dihapus!');
     }
 
     public function print()
     {
-        $mahasiswa = Mahasiswa::with('detail_jurusan')->get();
-
-        return view('mahasiswa.print', compact('mahasiswa'));
+        $mahasiswas = Mahasiswa::with('jurusan')->get();
+        $html = '
+        <html><head><style>
+        body{font-family:Arial;font-size:13px;}
+        h2{text-align:center;}
+        p{text-align:center;color:#555;}
+        table{width:100%;border-collapse:collapse;margin-top:15px;}
+        th{background:#1a1a2e;color:#fff;padding:10px;text-align:left;}
+        td{padding:9px 10px;border-bottom:1px solid #eee;}
+        tr:nth-child(even){background:#f9f9f9;}
+        .btn{background:#1a1a2e;color:#fff;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;margin-bottom:15px;}
+        @media print{.btn{display:none;}}
+        </style></head><body>
+        <button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        <h2>Data Mahasiswa</h2>
+        <p>Universitas Teknologi Bandung</p>
+        <p>Tanggal: ' . date('d-m-Y') . '</p>
+        <table>
+        <thead><tr><th>No</th><th>NIM</th><th>Nama</th><th>Jurusan</th></tr></thead>
+        <tbody>';
+        foreach ($mahasiswas as $i => $m) {
+            $html .= '<tr>
+                <td>' . ($i + 1) . '</td>
+                <td>' . $m->nim . '</td>
+                <td>' . $m->nama . '</td>
+                <td>' . ($m->jurusan->nama_jurusan ?? '-') . '</td>
+            </tr>';
+        }
+        $html .= '</tbody></table>
+        <p style="text-align:right;margin-top:20px;color:#888;">Total: ' . $mahasiswas->count() . ' Mahasiswa</p>
+        </body></html>';
+        return response($html);
     }
 
     public function exportExcel()
     {
-        $mahasiswa = Mahasiswa::with('detail_jurusan')->get();
-
-        return response()
-            ->view('mahasiswa.excel', compact('mahasiswa'))
+        $mahasiswas = Mahasiswa::with('jurusan')->get();
+        $html = '<table>
+            <thead><tr><th>No</th><th>NIM</th><th>Nama</th><th>Jurusan</th></tr></thead>
+            <tbody>';
+        foreach ($mahasiswas as $i => $m) {
+            $html .= '<tr>
+                <td>' . ($i + 1) . '</td>
+                <td>' . $m->nim . '</td>
+                <td>' . $m->nama . '</td>
+                <td>' . ($m->jurusan->nama_jurusan ?? '-') . '</td>
+            </tr>';
+        }
+        $html .= '</tbody></table>';
+        return response($html)
             ->header('Content-Type', 'application/vnd.ms-excel')
             ->header('Content-Disposition', 'attachment; filename=mahasiswa.xls');
+    }
+
+    public function exportCsv()
+    {
+        $mahasiswas = Mahasiswa::with('jurusan')->get();
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename=mahasiswa.csv',
+        ];
+        $callback = function () use ($mahasiswas) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($file, ['No', 'NIM', 'Nama', 'Jurusan'], ';');
+            foreach ($mahasiswas as $i => $m) {
+                fputcsv($file, [
+                    $i + 1,
+                    $m->nim,
+                    $m->nama,
+                    $m->jurusan->nama_jurusan ?? '-',
+                ], ';');
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
     }
 }

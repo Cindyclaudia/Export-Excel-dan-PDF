@@ -137,13 +137,20 @@
                 </div>
             @endif
 
-            <div class="page-card">
-                <div class="page-card-header">
-                    <h5><i class="fas fa-book me-2"></i>Daftar Matakuliah</h5>
-                    <a href="{{ route('matakuliah.create') }}" class="btn-tambah">
-                        <i class="fas fa-plus"></i> Tambah Matakuliah
-                    </a>
-                </div>
+            <div class="page-card-header" style="flex-wrap: wrap; gap: 10px;">
+    <h5><i class="fas fa-book me-2"></i>Daftar Matakuliah</h5>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ route('matakuliah.print') }}" target="_blank" class="btn-tambah" style="background: linear-gradient(135deg, #e94560, #c62a47);">
+            <i class="fas fa-file-pdf"></i> Export PDF
+        </a>
+        <a href="{{ route('matakuliah.exportExcel') }}" class="btn-tambah" style="background: linear-gradient(135deg, #1d6f42, #2d9b5f);">
+            <i class="fas fa-file-excel"></i> Export Excel
+        </a>
+        <a href="{{ route('matakuliah.create') }}" class="btn-tambah" style="background: linear-gradient(135deg, #6c757d, #495057);">
+            <i class="fas fa-plus"></i> Tambah Matakuliah
+        </a>
+    </div>
+</div>
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
